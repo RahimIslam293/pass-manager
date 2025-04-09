@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_password():
     password_entry.delete(0,END)
@@ -31,17 +32,58 @@ def save_entry():
     email = email_username_entry.get()
     passw = password_entry.get()
     website = website_entry.get()
+    pass_dict = {
+        website:
+            {"email": email,
+             "password": passw
+             }
+    }
     if len(email) == 0 or len(passw) == 0 or len(website) ==0:
         messagebox.showinfo(message="One or more fields are empty")
     else:
         continyou = messagebox.askokcancel(title=website, message=f"These are the details entered: \nEmail: {email}\nPassword:{passw}")
         if continyou:
-            with open("passwords.txt","a") as pswfile:
-                pswfile.write(f"{email} | {passw} | {website} \n")
+            try:
+                with open("passwords.json", "r") as pswfile:
+                    loaded_pass = json.load(pswfile)
+                    loaded_pass.update(pass_dict)
+            except FileNotFoundError:
+                with open("passwords.json","w") as pswfile:
+                    # pswfile.write(f"{email} | {passw} | {website} \n")
+                    json.dump(pass_dict, pswfile, indent=4)
+                    pswfile.close()
+            else:
+                with open("passwords.json", "w") as pswfile:
+                    json.dump(loaded_pass, pswfile, indent=4)
+            finally:
                 pswfile.close()
-            password_entry.delete(0,END)
-            website_entry.delete(0,END)
-            messagebox.showinfo(message= "Credentials Saved.")
+                password_entry.delete(0,END)
+                website_entry.delete(0,END)
+                messagebox.showinfo(message= "Credentials Saved.")
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def search_password():
+    website = website_entry.get()
+    try:
+        with open("passwords.json", "r") as pswfile:
+            loaded_pass = json.load(pswfile)
+    except FileNotFoundError:
+        messagebox.showinfo(title = "Error", message="No Password File Exists")
+    else:
+        if website not in loaded_pass:
+            messagebox.showinfo(title = "Error",message="Website Not Found")
+
+        else:
+            password = loaded_pass[website]["password"]
+            email = loaded_pass[website]["email"]
+            messagebox.showinfo(message=f"Website: {website}\nEmail:{email}\nPassword: {password}")
+    finally:
+        pswfile.close()
+
+
+
+
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -55,9 +97,11 @@ image = canvas.create_image(100,95, image=img)
 canvas.grid(column=1,row=0)
 website_label = Label(text="Website:")
 website_label.grid(column=0, row=1)
-website_entry = Entry(width=50)
-website_entry.grid(column=1,row=1, columnspan=2)
+website_entry = Entry(width=31)
+website_entry.grid(column=1,row=1)
 website_entry.focus()
+website_search = Button(text="Search", width=15, command=search_password)
+website_search.grid(column=2, row=1)
 email_username_label = Label(text="Email/Username:")
 email_username_label.grid(column=0, row=2)
 email_username_entry = Entry(width=50)
